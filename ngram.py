@@ -4,8 +4,31 @@ import random
 def process_file(filename):
     with open(filename, "r") as file:
         contents = file.read()
+    
+    # Define punctuation marks to remove
+    punctuation_to_remove = [
+        ".", ",", "!", "?", "“", "”",
+        "(", ")", ":", "_", ";"
+    ]
 
-    preprocessed = contents.lower().replace(".", "").replace(",", "").replace("!", "").replace("?", "").replace("—", " ").replace("“", "").replace("”", "").replace("(", "").replace(")", "").replace(":", "").replace("_", "").replace(";", "").replace("’", " ’ ").replace("\n\n", " <EOF> ")
+    # Special cases with custom replacements
+    special_replacements = {
+        "—": " ",
+        "’": " ’ ",
+        "\n\n": " <EOF> "
+    }
+
+    # Preprocess the text
+    preprocessed = contents.lower()
+
+    # Remove punctuation
+    for p in punctuation_to_remove:
+        preprocessed = preprocessed.replace(p, "")
+    
+    # Handle special replacements
+    for old, new in special_replacements.items():
+        preprocessed = preprocessed.replace(old, new)
+
     return preprocessed.split()
 
 def create_nested_dict(depth):
@@ -48,18 +71,14 @@ class Ngram:
         tokens = list(context)
         
         while tokens[-1] != "<EOF>" and len(tokens) < max_length:
-            next_token = self.predict_token(tokens[-(self.n-1):])
+            context = tokens[-(self.n-1):]
+            next_token = self.predict_token(context)
             tokens.append(next_token)
         
         return " ".join(tokens)
 
-# Example usage
 if __name__ == "__main__":
     model = Ngram(n=3)  # Can be changed to any number > 1
-
     training_data = process_file("data/alice.txt")
     model.train(training_data)
-
-    # Generate text starting with the first N-1 tokens of the training data
-    start_context = tuple(training_data[:model.n-1])
     print(model.predict_text(["alice", "in", "a"]))
