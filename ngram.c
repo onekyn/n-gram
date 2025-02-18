@@ -98,7 +98,7 @@ List* process_file(const char* file_path)
     }
     contents[pos] = '\0';
 
-    // Initalize the dynamic array that will store the dictionary
+    // Initialize the dynamic array that will store the tokens
     List* tokens = create_list(1024);
     if (tokens == NULL) {
         fprintf(stderr, "ERROR: Could not process file correctly\n");
