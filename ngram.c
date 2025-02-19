@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // A simple dynamic array implementation
 typedef struct {
@@ -264,10 +265,6 @@ Ngram* train(List* training_data, size_t n)
 
 char* predict_token(Ngram* ngram, List* context)
 {
-    int best_frequency = 0;
-    size_t best_candidate_index = 0;
-    bool found_candidate = false;
-
     // Create temporary array containing the last part of the context
     // plus 1 candidate prediction
     const char** prediction_attempt = malloc(ngram->n * sizeof(char*));
@@ -276,27 +273,35 @@ char* predict_token(Ngram* ngram, List* context)
         prediction_attempt[i] = context->items[offset + i];
     }
 
-    // Find the token that most frequently follows the given context
+    // Compute total frequency
+    int total_frequency = 0;
     for (size_t i = 0; i < ngram->dictionary->size; i++) {
         prediction_attempt[ngram->n - 1] = ngram->dictionary->items[i];
-        const int frequency = get_frequency(ngram, prediction_attempt);
-        if (frequency > best_frequency) {
-            best_frequency = frequency;
-            best_candidate_index = i;
-            found_candidate = true;
-        }
+        total_frequency += get_frequency(ngram, prediction_attempt);
     }
 
-    // Delete temporary array
-    free(prediction_attempt);
-
-    // If there's no good candidate, just report the special token "EOF"
-    if (!found_candidate) {
+    // If we found no occurrences, just report the special token "EOF"
+    if (total_frequency == 0) {
+        free(prediction_attempt);
         return "EOF";
     }
 
-    // Report the best candidate we found
-    return ngram->dictionary->items[best_candidate_index];
+    // Generate a random number and find the corresponding token
+    int random_value = rand() % total_frequency;
+    int cumulative_frequency = 0;
+
+    for (size_t i = 0; i < ngram->dictionary->size; i++) {
+        prediction_attempt[ngram->n - 1] = ngram->dictionary->items[i];
+        cumulative_frequency += get_frequency(ngram, prediction_attempt);
+        if (cumulative_frequency > random_value) {
+            free(prediction_attempt);
+            return ngram->dictionary->items[i];
+        }
+    }
+
+    // This execution path shouldn't be reachable if the code is correct
+    free(prediction_attempt);
+    return "EOF";
 }
 
 void predict_text(List* context, Ngram* ngram, size_t max_tokens)
@@ -313,13 +318,15 @@ void predict_text(List* context, Ngram* ngram, size_t max_tokens)
 
 int main(void)
 {
+    srand(time(NULL));
+
     // Load and process the training data
     List* training_data = process_file("data/alice.txt");
     Ngram* ngram = train(training_data, 3);
 
     // Set up initial context for text generation
     List* generated_text = create_list(1024);
-    const char* seed_words[] = {"alice", "in", "a"};
+    const char* seed_words[] = { "alice", "in", "a" };
     for (size_t i = 0; i < 3; i++) {
         add_item(generated_text, seed_words[i]);
     }
@@ -332,7 +339,7 @@ int main(void)
     }
     printf("\n");
 
-    // Clean up    
+    // Clean up
     free_list(generated_text);
     free_list(training_data);
     free_ngram(ngram);
