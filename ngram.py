@@ -67,10 +67,10 @@ class Ngram:
         sample = random.sample(candidates, counts=frequencies, k=1)
         return sample[0]
     
-    def predict_text(self, context: list[str], max_length: int = 1000):
+    def predict_text(self, context: list[str], max_tokens: int = 100):
         tokens = list(context)
         
-        while tokens[-1] != "<EOF>" and len(tokens) < max_length:
+        while tokens[-1] != "<EOF>" and len(tokens) < max_tokens:
             context = tokens[-(self.n-1):]
             next_token = self.predict_token(context)
             tokens.append(next_token)
